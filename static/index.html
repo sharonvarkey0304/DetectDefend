@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DETECTDEFEND // NETWORK ATTACK DETECTION AND DEFENCE</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+:root{--bg:#0a0e14;--panel:#0d1520;--border:#1a2a3a;--cyan:#00e5ff;--green:#00ff88;--red:#ff3a3a;--yellow:#ffd700;--orange:#ff9500;--purple:#bf7fff;--text:#c8d8e8;--muted:#4a6a8a;--mono:'Share Tech Mono',monospace}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;display:grid;grid-template-rows:52px 1fr;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,229,255,.015) 2px,rgba(0,229,255,.015) 4px);pointer-events:none;z-index:9999}
+header{display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--border);background:var(--panel)}
+.header-title{display:flex;align-items:center;gap:10px;font-size:.9rem;letter-spacing:.12em;color:var(--cyan);font-weight:700}
+.dot-live{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+#clock{color:var(--muted);font-size:.82rem}
+.main{display:grid;grid-template-columns:260px 1fr;min-height:0}
+.sidebar{border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column}
+.sidebar-section{font-size:.65rem;color:var(--muted);letter-spacing:.12em;padding:14px 18px 6px}
+.pipeline-btn{display:flex;align-items:center;gap:12px;padding:13px 18px;cursor:pointer;border:none;background:none;color:var(--text);font-family:var(--mono);font-size:.82rem;width:100%;text-align:left;border-left:2px solid transparent;transition:all .2s;letter-spacing:.04em}
+.pipeline-btn:hover{background:rgba(0,229,255,.06);border-left-color:var(--cyan);color:var(--cyan)}
+.pipeline-btn .icon{width:18px;height:18px;border:1px solid currentColor;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;flex-shrink:0}
+.divider{border:none;border-top:1px solid var(--border);margin:10px 0}
+.log-box{flex:1;margin:0 12px;background:#050a10;border:1px solid var(--border);border-radius:4px;padding:10px;font-size:.72rem;overflow-y:auto;max-height:200px;color:#3a8a4a;line-height:1.7}
+.log-entry{animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.log-err{color:var(--red)}.log-ok{color:var(--green)}.log-warn{color:var(--yellow)}
+.upload-section{padding:10px 12px}
+.upload-title{font-size:.65rem;color:var(--muted);letter-spacing:.12em;margin-bottom:8px}
+.upload-drop{border:1px dashed var(--muted);border-radius:4px;padding:12px 10px;text-align:center;font-size:.72rem;color:var(--muted);cursor:pointer;transition:all .2s;display:block}
+.upload-drop:hover{border-color:var(--cyan);color:var(--cyan)}
+.upload-drop input{display:none}
+#upload-btn{width:100%;margin-top:8px;padding:8px;background:transparent;border:1px solid var(--cyan);color:var(--cyan);font-family:var(--mono);font-size:.75rem;letter-spacing:.08em;cursor:pointer;transition:all .2s}
+#upload-btn:hover{background:rgba(0,229,255,.15)}
+#upload-fname{font-size:.65rem;color:var(--muted);margin-top:5px;text-align:center}
+.content{overflow-y:auto;display:flex;flex-direction:column}
+.status-bar{padding:10px 20px;border-bottom:1px solid var(--border);font-size:.78rem;color:var(--green);min-height:38px;display:flex;align-items:center;gap:8px}
+.status-bar.idle{color:var(--muted)}.status-bar.err{color:var(--red)}
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--border)}
+.stat-card{padding:18px 16px;border-right:1px solid var(--border)}
+.stat-card:last-child{border-right:none}
+.stat-label{font-size:.6rem;color:var(--muted);letter-spacing:.12em;margin-bottom:8px}
+.stat-val{font-size:2.1rem;font-weight:700;line-height:1}
+.c-cyan{color:var(--cyan)}.c-red{color:var(--red)}.c-yellow{color:var(--yellow)}.c-green{color:var(--green)}.c-purple{color:var(--purple)}
+.section{padding:16px 20px;border-bottom:1px solid var(--border)}
+.sec-title{font-size:.62rem;color:var(--muted);letter-spacing:.15em;margin-bottom:14px}
+.bar-row{margin-bottom:10px}
+.bar-label-row{display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:4px}
+.bar-track{height:8px;background:#0d1a24;overflow:hidden}
+.bar-fill{height:100%;transition:width 1s cubic-bezier(.4,0,.2,1);width:0%}
+.bar-green{background:var(--green);box-shadow:0 0 8px var(--green)}
+.bar-red{background:var(--red);box-shadow:0 0 8px var(--red)}
+.bar-yellow{background:var(--yellow);box-shadow:0 0 8px var(--yellow)}
+.bar-cyan{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.bar-orange{background:var(--orange);box-shadow:0 0 8px var(--orange)}
+.bar-purple{background:var(--purple);box-shadow:0 0 8px var(--purple)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border)}
+.two-col>div{padding:16px 20px}
+.two-col>div:first-child{border-right:1px solid var(--border)}
+.metric-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.metric-name{font-size:.68rem;color:var(--muted);letter-spacing:.08em;width:70px;flex-shrink:0}
+.metric-bar-track{flex:1;height:6px;background:#0d1a24}
+.metric-bar-fill{height:100%;transition:width 1s cubic-bezier(.4,0,.2,1);width:0%}
+.metric-val{font-size:.78rem;width:50px;text-align:right}
+.cm-table{width:100%;border-collapse:collapse;font-size:.75rem}
+.cm-table th,.cm-table td{border:1px solid var(--border);padding:10px 8px;text-align:center}
+.cm-table th{color:var(--muted);font-size:.62rem;letter-spacing:.08em;font-weight:400;background:#080e16}
+.cm-table td{font-size:1rem;font-weight:700}
+.cm-tp{color:var(--green)}.cm-tn{color:var(--green)}.cm-fp{color:var(--orange)}.cm-fn{color:var(--red)}
+.spin{display:inline-block;width:10px;height:10px;border:1px solid var(--muted);border-top-color:var(--cyan);border-radius:50%;animation:spin .6s linear infinite;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-title"><div class="dot-live"></div>DETECTDEFEND // NETWORK ATTACK DETECTION AND DEFENCE</div>
+  <div id="clock">--:--:-- UTC</div>
+</header>
+<div class="main">
+  <aside class="sidebar">
+    <div class="sidebar-section">PIPELINE</div>
+    <button class="pipeline-btn" onclick="runStage('baseline')"><span class="icon">○</span> Run Baseline Detection</button>
+    <button class="pipeline-btn" onclick="runStage('attack')"><span class="icon">!</span> Simulate Adversarial Attack</button>
+    <button class="pipeline-btn" onclick="runStage('defense')"><span class="icon">◇</span> Activate Defensive Retraining</button>
+    <button class="pipeline-btn" onclick="runStage('all')"><span class="icon">◆</span> Run Full Pipeline</button>
+    <hr class="divider"/>
+    <div class="upload-section">
+      <div class="upload-title">UPLOAD DATASET</div>
+      <label class="upload-drop">
+        <input type="file" id="csv-file" accept=".csv" onchange="onFileChosen(this)"/>
+        📂 Choose CSV file
+      </label>
+      <div id="upload-fname">No file chosen</div>
+      <button id="upload-btn" onclick="uploadDataset()">▶ TEST DATASET</button>
+    </div>
+    <hr class="divider"/>
+    <div class="sidebar-section">SYSTEM LOG</div>
+    <div class="log-box" id="log-box">
+      <div class="log-entry" style="color:var(--muted)">> System initialised</div>
+      <div class="log-entry" style="color:var(--muted)">> Awaiting pipeline command...</div>
+    </div>
+  </aside>
+
+  <div class="content">
+    <div class="status-bar idle" id="status-bar">> Awaiting command...</div>
+
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-label">BASELINE ACC.</div><div class="stat-val c-cyan" id="v-baseline">—</div></div>
+      <div class="stat-card"><div class="stat-label">AFTER ATTACK</div><div class="stat-val c-red" id="v-attack">—</div></div>
+      <div class="stat-card"><div class="stat-label">AFTER DEFENSE</div><div class="stat-val c-yellow" id="v-defense">—</div></div>
+      <div class="stat-card"><div class="stat-label">ACC. DROP</div><div class="stat-val c-red" id="v-drop">—</div></div>
+      <div class="stat-card"><div class="stat-label">IMPROVEMENT</div><div class="stat-val c-green" id="v-improvement">—</div></div>
+    </div>
+
+    <div class="section">
+      <div class="sec-title">ACCURACY COMPARISON</div>
+      <div class="bar-row">
+        <div class="bar-label-row"><span>Baseline</span><span id="bl-acc-lbl">—</span></div>
+        <div class="bar-track"><div class="bar-fill bar-green" id="bl-bar"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label-row"><span>Under Attack</span><span id="atk-acc-lbl">—</span></div>
+        <div class="bar-track"><div class="bar-fill bar-red" id="atk-bar"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label-row"><span>After Defense</span><span id="def-acc-lbl">—</span></div>
+        <div class="bar-track"><div class="bar-fill bar-yellow" id="def-bar"></div></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="sec-title">PRECISION · RECALL · F1-SCORE</div>
+        <div style="font-size:.62rem;color:var(--cyan);letter-spacing:.1em;margin-bottom:8px">BASELINE</div>
+        <div class="metric-row"><div class="metric-name">PRECISION</div><div class="metric-bar-track"><div class="metric-bar-fill bar-cyan" id="bl-pre-bar"></div></div><div class="metric-val c-cyan" id="bl-pre">—</div></div>
+        <div class="metric-row"><div class="metric-name">RECALL</div><div class="metric-bar-track"><div class="metric-bar-fill bar-cyan" id="bl-rec-bar"></div></div><div class="metric-val c-cyan" id="bl-rec">—</div></div>
+        <div class="metric-row"><div class="metric-name">F1-SCORE</div><div class="metric-bar-track"><div class="metric-bar-fill bar-cyan" id="bl-f1-bar"></div></div><div class="metric-val c-cyan" id="bl-f1">—</div></div>
+        <div style="font-size:.62rem;color:var(--red);letter-spacing:.1em;margin:12px 0 8px">UNDER ATTACK</div>
+        <div class="metric-row"><div class="metric-name">PRECISION</div><div class="metric-bar-track"><div class="metric-bar-fill bar-red" id="atk-pre-bar"></div></div><div class="metric-val c-red" id="atk-pre">—</div></div>
+        <div class="metric-row"><div class="metric-name">RECALL</div><div class="metric-bar-track"><div class="metric-bar-fill bar-red" id="atk-rec-bar"></div></div><div class="metric-val c-red" id="atk-rec">—</div></div>
+        <div class="metric-row"><div class="metric-name">F1-SCORE</div><div class="metric-bar-track"><div class="metric-bar-fill bar-red" id="atk-f1-bar"></div></div><div class="metric-val c-red" id="atk-f1">—</div></div>
+        <div style="font-size:.62rem;color:var(--yellow);letter-spacing:.1em;margin:12px 0 8px">AFTER DEFENSE</div>
+        <div class="metric-row"><div class="metric-name">PRECISION</div><div class="metric-bar-track"><div class="metric-bar-fill bar-yellow" id="def-pre-bar"></div></div><div class="metric-val c-yellow" id="def-pre">—</div></div>
+        <div class="metric-row"><div class="metric-name">RECALL</div><div class="metric-bar-track"><div class="metric-bar-fill bar-yellow" id="def-rec-bar"></div></div><div class="metric-val c-yellow" id="def-rec">—</div></div>
+        <div class="metric-row"><div class="metric-name">F1-SCORE</div><div class="metric-bar-track"><div class="metric-bar-fill bar-yellow" id="def-f1-bar"></div></div><div class="metric-val c-yellow" id="def-f1">—</div></div>
+        <div style="font-size:.62rem;color:var(--purple);letter-spacing:.1em;margin:12px 0 8px">CUSTOM DATASET</div>
+        <div class="metric-row"><div class="metric-name">PRECISION</div><div class="metric-bar-track"><div class="metric-bar-fill bar-purple" id="ds-pre-bar"></div></div><div class="metric-val c-purple" id="ds-pre">—</div></div>
+        <div class="metric-row"><div class="metric-name">RECALL</div><div class="metric-bar-track"><div class="metric-bar-fill bar-purple" id="ds-rec-bar"></div></div><div class="metric-val c-purple" id="ds-rec">—</div></div>
+        <div class="metric-row"><div class="metric-name">F1-SCORE</div><div class="metric-bar-track"><div class="metric-bar-fill bar-purple" id="ds-f1-bar"></div></div><div class="metric-val c-purple" id="ds-f1">—</div></div>
+      </div>
+      <div>
+        <div class="sec-title" id="cm-title">CONFUSION MATRIX — BASELINE</div>
+        <table class="cm-table">
+          <thead><tr><th></th><th>PRED NORMAL</th><th>PRED ATTACK</th></tr></thead>
+          <tbody>
+            <tr><th>ACT NORMAL</th><td class="cm-tn" id="cm-tn">—</td><td class="cm-fp" id="cm-fp">—</td></tr>
+            <tr><th>ACT ATTACK</th><td class="cm-fn" id="cm-fn">—</td><td class="cm-tp" id="cm-tp">—</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:14px;font-size:.68rem;color:var(--muted);line-height:1.9">
+          <div><span style="color:var(--green)">TP</span> = Attacks correctly flagged</div>
+          <div><span style="color:var(--orange)">FP</span> = Normal traffic falsely flagged</div>
+          <div><span style="color:var(--red)">FN</span> = Attacks missed ← critical</div>
+          <div><span style="color:var(--green)">TN</span> = Normal traffic correctly passed</div>
+        </div>
+        <div style="margin-top:20px">
+          <div class="sec-title">CUSTOM DATASET RESULT</div>
+          <div id="ds-result" style="font-size:.72rem;color:var(--muted);line-height:2">No dataset evaluated yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE="http://127.0.0.1:5000";
+function tick(){const n=new Date();document.getElementById("clock").textContent=n.toUTCString().split(" ")[4]+" UTC"}
+tick();setInterval(tick,1000);
+
+function log(msg,cls=""){
+  const box=document.getElementById("log-box");
+  const el=document.createElement("div");
+  el.className="log-entry "+(cls||"");
+  el.textContent="> "+msg;
+  box.appendChild(el);
+  box.scrollTop=box.scrollHeight;
+}
+function setStatus(msg,type=""){
+  const el=document.getElementById("status-bar");
+  el.className="status-bar "+(type||"");
+  el.innerHTML=msg;
+}
+const results={baseline:null,attack:null,defense:null};
+const pct=v=>typeof v==="number"?v.toFixed(2)+"%":"—";
+const fmt=v=>typeof v==="number"?v.toFixed(4):"—";
+function setBar(id,val){setTimeout(()=>{const el=document.getElementById(id);if(el)el.style.width=val+"%"},60)}
+
+function applyStageMetrics(stage,data){
+  const pre={baseline:"bl",attack:"atk",defense:"def"}[stage];
+  document.getElementById(`${pre}-pre`).textContent=fmt(data.precision);
+  document.getElementById(`${pre}-rec`).textContent=fmt(data.recall);
+  document.getElementById(`${pre}-f1`).textContent=fmt(data.f1_score);
+  setBar(`${pre}-pre-bar`,(data.precision||0)*100);
+  setBar(`${pre}-rec-bar`,(data.recall||0)*100);
+  setBar(`${pre}-f1-bar`,(data.f1_score||0)*100);
+  const accMap={baseline:["bl-bar","bl-acc-lbl"],attack:["atk-bar","atk-acc-lbl"],defense:["def-bar","def-acc-lbl"]};
+  const[barId,lblId]=accMap[stage];
+  setBar(barId,data.accuracy);
+  document.getElementById(lblId).textContent=pct(data.accuracy);
+  if(stage==="baseline")document.getElementById("v-baseline").textContent=pct(data.accuracy);
+  if(stage==="attack")document.getElementById("v-attack").textContent=pct(data.accuracy);
+  if(stage==="defense")document.getElementById("v-defense").textContent=pct(data.accuracy);
+  if(results.baseline&&results.attack){
+    const drop=(results.attack.accuracy-results.baseline.accuracy).toFixed(2);
+    document.getElementById("v-drop").textContent=(drop>0?"+":"")+drop+"%";
+  }
+  if(results.attack&&results.defense){
+    const imp=(results.defense.accuracy-results.attack.accuracy).toFixed(2);
+    document.getElementById("v-improvement").textContent=(imp>0?"+":"")+imp+"%";
+  }
+  const cm=data.confusion_matrix;
+  if(cm){
+    document.getElementById("cm-tn").textContent=cm.TN.toLocaleString();
+    document.getElementById("cm-fp").textContent=cm.FP.toLocaleString();
+    document.getElementById("cm-fn").textContent=cm.FN.toLocaleString();
+    document.getElementById("cm-tp").textContent=cm.TP.toLocaleString();
+    document.getElementById("cm-title").textContent="CONFUSION MATRIX — "+stage.toUpperCase();
+  }
+}
+
+async function fetchStage(stage){
+  const res=await fetch(`${BASE}/${stage}`);
+  const data=await res.json();
+  if(data.error)throw new Error(data.error);
+  results[stage]=data;
+  applyStageMetrics(stage,data);
+  return data;
+}
+
+async function runStage(stage){
+  if(stage==="all"){
+    setStatus('<span class="spin"></span>> Running full pipeline...');
+    log("Starting full pipeline...","log-warn");
+    try{
+      log("Running baseline...");await fetchStage("baseline");
+      log("Baseline — acc "+pct(results.baseline.accuracy)+" | F1 "+fmt(results.baseline.f1_score),"log-ok");
+      log("Simulating attack...","log-warn");await fetchStage("attack");
+      log("Attack — acc "+pct(results.attack.accuracy)+" | F1 "+fmt(results.attack.f1_score),"log-err");
+      log("Activating defense...","log-warn");await fetchStage("defense");
+      const imp=(results.defense.accuracy-results.attack.accuracy).toFixed(2);
+      log("Defense complete — improved by "+imp+"%","log-ok");
+      setStatus("> Defense complete — improved by "+imp+"%");
+    }catch(e){setStatus("❌ "+e.message,"err");log(e.message,"log-err")}
+    return;
+  }
+  const labels={baseline:"Running baseline detection...",attack:"Simulating adversarial attack...",defense:"Activating defensive retraining..."};
+  setStatus('<span class="spin"></span>> '+labels[stage]);
+  log(labels[stage],"log-warn");
+  try{
+    const data=await fetchStage(stage);
+    setStatus("> "+stage+" complete — acc "+pct(data.accuracy)+" | F1 "+fmt(data.f1_score));
+    log(stage+" complete — acc "+pct(data.accuracy)+" | F1 "+fmt(data.f1_score),"log-ok");
+  }catch(e){setStatus("❌ "+e.message,"err");log(e.message,"log-err")}
+}
+
+function onFileChosen(input){
+  document.getElementById("upload-fname").textContent=input.files[0]?input.files[0].name:"No file chosen";
+}
+
+async function uploadDataset(){
+  const input=document.getElementById("csv-file");
+  if(!input.files[0]){setStatus("⚠️ Choose a CSV file first.","err");return}
+  const form=new FormData();
+  form.append("file",input.files[0]);
+  setStatus('<span class="spin"></span>> Evaluating '+input.files[0].name+"...");
+  log("Uploading: "+input.files[0].name,"log-warn");
+  try{
+    const res=await fetch(`${BASE}/upload_pipeline`,{method:"POST",body:form});
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+
+    // Fill custom dataset metric bars from baseline of uploaded data
+    const b=data.baseline;
+    document.getElementById("ds-pre").textContent=fmt(b.precision);
+    document.getElementById("ds-rec").textContent=fmt(b.recall);
+    document.getElementById("ds-f1").textContent=fmt(b.f1_score);
+    setBar("ds-pre-bar",(b.precision||0)*100);
+    setBar("ds-rec-bar",(b.recall||0)*100);
+    setBar("ds-f1-bar",(b.f1_score||0)*100);
+
+    // Also update main accuracy bars with uploaded data results
+    setBar("bl-bar",data.baseline.accuracy);document.getElementById("bl-acc-lbl").textContent=pct(data.baseline.accuracy);
+    setBar("atk-bar",data.attack.accuracy);document.getElementById("atk-acc-lbl").textContent=pct(data.attack.accuracy);
+    setBar("def-bar",data.defense.accuracy);document.getElementById("def-acc-lbl").textContent=pct(data.defense.accuracy);
+    document.getElementById("v-baseline").textContent=pct(data.baseline.accuracy);
+    document.getElementById("v-attack").textContent=pct(data.attack.accuracy);
+    document.getElementById("v-defense").textContent=pct(data.defense.accuracy);
+    const drop=(data.attack.accuracy-data.baseline.accuracy).toFixed(2);
+    const imp=(data.defense.accuracy-data.attack.accuracy).toFixed(2);
+    document.getElementById("v-drop").textContent=(drop>0?"+":"")+drop+"%";
+    document.getElementById("v-improvement").textContent=(imp>0?"+":"")+imp+"%";
+
+    // Update confusion matrix
+    const cm=data.defense.confusion_matrix;
+    document.getElementById("cm-tn").textContent=cm.TN.toLocaleString();
+    document.getElementById("cm-fp").textContent=cm.FP.toLocaleString();
+    document.getElementById("cm-fn").textContent=cm.FN.toLocaleString();
+    document.getElementById("cm-tp").textContent=cm.TP.toLocaleString();
+    document.getElementById("cm-title").textContent="CONFUSION MATRIX — CUSTOM DATASET";
+
+    document.getElementById("ds-result").innerHTML=
+      `<span style="color:var(--cyan)">FILE:</span> ${input.files[0].name}<br>`+
+      `<span style="color:var(--muted)">TOTAL ROWS:</span> <span style="color:var(--text)">${data.total_rows.toLocaleString()}</span><br>`+
+      `<span style="color:var(--muted)">TESTED ROWS:</span> <span style="color:var(--text)">${data.rows_evaluated.toLocaleString()}</span><br>`+
+      `<span style="color:var(--muted)">BASELINE ACC:</span> <span style="color:var(--cyan)">${pct(data.baseline.accuracy)}</span><br>`+
+      `<span style="color:var(--muted)">ATTACK ACC:</span> <span style="color:var(--red)">${pct(data.attack.accuracy)}</span><br>`+
+      `<span style="color:var(--muted)">DEFENSE ACC:</span> <span style="color:var(--yellow)">${pct(data.defense.accuracy)}</span><br>`+
+      `<span style="color:var(--muted)">F1-SCORE:</span> <span style="color:var(--purple)">${fmt(data.baseline.f1_score)}</span>`;
+
+    const msg=`Dataset OK — ${data.total_rows.toLocaleString()} rows | acc ${pct(data.baseline.accuracy)} | F1 ${fmt(data.baseline.f1_score)}`;
+    setStatus("> "+msg);
+    log(msg,"log-ok");
+  }catch(e){setStatus("❌ "+e.message,"err");log(e.message,"log-err")}
+}
+</script>
+</body>
+</html>
+
+
